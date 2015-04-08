@@ -20,6 +20,7 @@ COMMANDS:
 
   attach [clan-name]
     Assign first available ip to current host and expose through weave
+
   detach [clan-name]
     Unassign the mapped ip for the current host and call weave hide
 
