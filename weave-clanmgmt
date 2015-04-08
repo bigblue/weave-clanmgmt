@@ -22,14 +22,14 @@ COMMANDS:
   create clan [clan-name]
     example: weave-clanmgmt create clan myclan
 
-  create network [network/cidr] [clan-number]
-    example: weave-clanmgmt create network 172.16.0.0/24 9999
+  create network [network/cidr] [clan-name]
+    example: weave-clanmgmt create network 172.16.0.0/24 myclan
 
-  destroy clan [clan-number]
-    example: weave-clanmgmt destroy clan 9999
+  destroy clan [clan-name]
+    example: weave-clanmgmt destroy clan myclan
 
-  destroy network [clan-number] [network-block]
-    example: weave-clanmgmt destroy network 9999 172.16.0.0
+  destroy network [clan-name] [network-block]
+    example: weave-clanmgmt destroy network myclan 172.16.0.0
 
   attach [clan-name]
     Assign first available ip to current host and expose through weave
@@ -240,7 +240,7 @@ clan() {
           shift 1
           if [ "$#" -ne 2 ]; then
             echo "usage: weave-clanmgmt create network network/cidr target-clan"
-            echo "example: weave-clanmgmt create network 172.16.0.0/24 9999"
+            echo "example: weave-clanmgmt create network 172.16.0.0/24 myclan"
             echo "NOTE: weave-clanmgmt only supports /24 networks at the moment"
             exit 1
           fi
@@ -251,13 +251,14 @@ clan() {
             exit 1
           fi
           echo "Checking if the clan exists...."
-          VLANEXIST=$(does_clan_exist $2)
+          TARGETVLAN=$(etcdctl get /weave/clans/namemap/$2)
+          VLANEXIST=$(does_clan_exist $TARGETVLAN)
           if [ $VLANEXIST == 1  ] ; then
             echo "Sorry - clan $3 doesnt exist!"
             exit 1
           fi
           echo "Checking if network exists in target clan..."
-          NETWORKEXIST=$(does_network_exist_in_clan $2 $ADDRESSBLOCK)
+          NETWORKEXIST=$(does_network_exist_in_clan $TARGETVLAN $ADDRESSBLOCK)
           if [ $NETWORKEXIST ==  0 ] ; then
             echo "Sorry - network $1 already exists in clan $2"
             exit 1
@@ -267,19 +268,18 @@ clan() {
           ADDRESSBLOCK=$(echo $1 | awk -F\/ '{print $1}')
           CURRCIDR=$(echo $1 | awk -F \/ '{print $2}')
           NETMASK=$(cidr2mask $CURRCIDR)
-          TARGETVLAN=$(get_clan_name $2)
           echo "Target VLAN: $2"
           echo "Addressblock=$ADDRESSBLOCK"
           echo "Netmask=$NETMASK"
           echo "Creating network..."
-          etcdctl mkdir /weave/clans/$2/network/$ADDRESSBLOCK
-          etcdctl mkdir /weave/clans/$2/network/$ADDRESSBLOCK/ip-pool
-          etcdctl mkdir /weave/clans/$2/network/$ADDRESSBLOCK/ip-pool/available
-          etcdctl mkdir /weave/clans/$2/network/$ADDRESSBLOCK/ip-pool/assigned
-          etcdctl mkdir /weave/clans/$2/network/$ADDRESSBLOCK/ip-pool/rollcall
-          etcdctl mk /weave/clans/$2/network/$ADDRESSBLOCK/netmask $CURRCIDR
+          etcdctl mkdir /weave/clans/$TARGETVLAN/network/$ADDRESSBLOCK
+          etcdctl mkdir /weave/clans/$TARGETVLAN/network/$ADDRESSBLOCK/ip-pool
+          etcdctl mkdir /weave/clans/$TARGETVLAN/network/$ADDRESSBLOCK/ip-pool/available
+          etcdctl mkdir /weave/clans/$TARGETVLAN/network/$ADDRESSBLOCK/ip-pool/assigned
+          etcdctl mkdir /weave/clans/$TARGETVLAN/network/$ADDRESSBLOCK/ip-pool/rollcall
+          etcdctl mk /weave/clans/$TARGETVLAN/network/$ADDRESSBLOCK/netmask $CURRCIDR
           for i in ${MYIPARRAY[*]} ; do
-            etcdctl mk /weave/clans/$2/network/$ADDRESSBLOCK/ip-pool/available/$i avail 2>&1 >/dev/null
+            etcdctl mk /weave/clans/$TARGETVLAN/network/$ADDRESSBLOCK/ip-pool/available/$i avail 2>&1 >/dev/null
           done
           echo "Done."
         ;;

@@ -9,14 +9,14 @@ COMMANDS:
   create clan [clan-name]
     example: weave-clanmgmt create clan myclan
 
-  create network [network/cidr] [clan-number]
-    example: weave-clanmgmt create network 172.16.0.0/24 9999
+  create network [network/cidr] [clan-name]
+    example: weave-clanmgmt create network 172.16.0.0/24 myclan
 
-  destroy clan [clan-number]
-    example: weave-clanmgmt destroy clan 9999
+  destroy clan [clan-name]
+    example: weave-clanmgmt destroy clan myclan
 
-  destroy network [clan-number] [network-block]
-    example: weave-clanmgmt destroy network 9999 172.16.0.0
+  destroy network [clan-name] [network-block]
+    example: weave-clanmgmt destroy network myclan 172.16.0.0
 
   attach [clan-name]
     Assign first available ip to current host and expose through weave
