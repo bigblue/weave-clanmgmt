@@ -293,16 +293,16 @@ clan() {
       case $1 in
         clan)
           if [ "$#" -ne 2 ]; then
-            echo "usage: weave-clanmgmt destroy clan clan-number"
+            echo "usage: weave-clanmgmt destroy clan clan-name"
             exit 1
           fi
-          VLANEXIST=$(does_clan_exist $2)
+          VLANEXIST=$(does_clan_name_exist $2)
           if [ $VLANEXIST == 1  ] ; then
-            echo "Sorry - clan $3 doesnt exist!"
+            echo "Sorry - clan $2 doesnt exist!"
             exit 1
           else
-            TARGETNAME=$(etcdctl get /weave/clans/namemap/$2)
-            destroy_clan $2 $TARGETNAME
+            TARGETVLAN=$(etcdctl get /weave/clans/namemap/$2)
+            destroy_clan $TARGETVLAN $2
           fi
         ;;
         network)
