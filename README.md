@@ -6,8 +6,8 @@ USAGE: weave-clanmgmt COMMAND [OPTION]...
 
 COMMANDS:
 
-  create clan [clan-number] [clan-name]
-    example: weave-clanmgmt create clan 9999 myvlan
+  create clan [clan-name]
+    example: weave-clanmgmt create clan myclan
 
   create network [network/cidr] [clan-number]
     example: weave-clanmgmt create network 172.16.0.0/24 9999

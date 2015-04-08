@@ -19,8 +19,8 @@ USAGE: weave-clanmgmt COMMAND [OPTION]...
 
 COMMANDS:
 
-  create clan [clan-number] [clan-name]
-    example: weave-clanmgmt create clan 9999 myvlan
+  create clan [clan-name]
+    example: weave-clanmgmt create clan myclan
 
   create network [network/cidr] [clan-number]
     example: weave-clanmgmt create network 172.16.0.0/24 9999
@@ -73,6 +73,16 @@ clan() {
   
   does_clan_exist() {
     etcdctl ls /weave/clans/$1 2>&1 1>/dev/null | grep '100:' | wc -l || true
+  }
+
+  get_next_clan_number() {
+    NOCLANS=$(etcdctl ls /weave/clans 2>&1 1>/dev/null | grep '100:' | wc -l || true)
+    if [ $NOCLANS == 1  ] ; then
+      echo 1
+    else
+      numClans=$(etcdctl ls /weave/clans | wc -l | tr -d '[[:space:]]')
+      echo $(expr $numClans + 1)
+    fi
   }
   
   #returns 0 if network DOESNT exist
@@ -211,23 +221,19 @@ clan() {
       shift 1
       case $1 in
         clan)
-          if [ "$#" -ne 3 ]; then
-            echo "usage: weave-clanmgmt create clan clan-number clan-human-readable-name"
+          if [ "$#" -ne 2 ]; then
+            echo "usage: weave-clanmgmt create clan [clan-name]"
             exit 1
           fi
-          VLANEXIST=$(does_clan_exist $2)
+          VLANEXIST=$(does_clan_name_exist $2)
           if [ "$VLANEXIST" == 0 ] ; then
-            echo "Sorry - a clan numbered $2 already exists!"
+            echo "Sorry - a clan named $2 already exists!"
             exit 1
           else
             echo "Creating clan $2"
           fi
-          VNEXIST=$(does_clan_name_exist $3)
-          if [ $VNEXIST == 0 ] ; then
-            echo "Sorry - a clan named $3 already exists!"
-            exit 1
-          fi
-          create_clan $3 $2
+          next_clan_number=$(get_next_clan_number)
+          create_clan $2 $next_clan_number
           echo "Done."
         ;;
         network)
