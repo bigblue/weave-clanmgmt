@@ -308,17 +308,23 @@ clan() {
         network)
           shift 1
           if [ "$#" -ne 2 ]; then
-            echo "usage: weave-clanmgmt destroy network clan-number network-block"
-            echo "example: weave-clanmgmt destroy network 9999 172.16.0.0"
+            echo "usage: weave-clanmgmt destroy network clan-name network-block"
+            echo "example: weave-clanmgmt destroy network myclan 172.16.0.0"
             exit 1
           fi
-          NETWORKEXIST=$(does_network_exist_in_clan $1 $2)
+          VLANEXIST=$(does_clan_name_exist $1)
+          if [ $VLANEXIST == 1  ] ; then
+            echo "Sorry - clan $1 doesnt exist!"
+            exit 1
+          fi
+          TARGETVLAN=$(etcdctl get /weave/clans/namemap/$1)
+          NETWORKEXIST=$(does_network_exist_in_clan $TARGETVLAN $2)
           if [ $NETWORKEXIST ==  1 ] ; then
             echo "Sorry - network $2 doesn't exist in clan $1"
             exit 1
           fi
           echo "Destroying network $2 in clan $1"
-          etcdctl rm --recursive /weave/clans/$1/network/$2
+          etcdctl rm --recursive /weave/clans/$TARGETVLAN/network/$2
 	  echo "Done."
         ;;
         *)
