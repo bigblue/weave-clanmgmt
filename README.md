@@ -27,3 +27,12 @@ COMMANDS:
   status 
     List clans this host is attached to
 ```
+
+### Managing docker container ips on a weave network
+
+```bash
+weave-clanmgmt create clan myclan
+weave-clanmgmt create network 10.0.2.0 myclan
+CONTAINER_IP=$(weave-clanmgmt assign myclan bb1)
+weave run $CONTAINER_IP/24 -t -i --name bb1 -h bb1 busybox
+```
