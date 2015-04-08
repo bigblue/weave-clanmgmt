@@ -31,8 +31,8 @@ COMMANDS:
   destroy network [clan-name] [network-block]
     example: weave-clanmgmt destroy network myclan 172.16.0.0
 
-  attach [clan-name]
-    Assign first available ip to current host and expose through weave
+  assign [clan-name] [hostname]
+    Assign first available ip to hostname and output ip address
 
   detach [clan-name]
     Unassign the mapped ip for the current host and call weave hide
@@ -59,7 +59,7 @@ clan() {
   }
   
   does_ip_exist_in_clan() {
-    etcdctl ls /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/rollcall/$(hostname) 2>&1 1>/dev/null | wc -l || true
+    etcdctl ls /weave/clans/$1/network/$2/rollcall/$3 2>&1 1>/dev/null | wc -l || true
   }
   
   get_clan_name() {
@@ -174,29 +174,30 @@ clan() {
   case "$1" in
     -h|--help) usage >&2; exit 0 ;;
     --version) echo "$(basename $0) $version"; exit 0 ;;
-    attach)
+    assign)
+      shift 1
       #get the clan num
-      TARGETVLAN=$(etcdctl get /weave/clans/namemap/$2)
+      TARGETVLAN=$(etcdctl get /weave/clans/namemap/$1)
       #grab the network particulars
       TARGETNETWORK=$(etcdctl ls /weave/clans/${TARGETVLAN}/network | awk -F\/ '{print $6}')
       TARGETNETMASK=$(etcdctl get /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/netmask)
       #see if we already have been assigned an ip in this clan
       #does_ip_exist_in_clan
-      IHAZIP=$(does_ip_exist_in_clan)
+      IHAZIP=$(does_ip_exist_in_clan $TARGETVLAN $TARGETNETWORK $2)
       if [ "$IHAZIP" == 0 ] ; then
-        echo "You already have an ip on the $2 weave VLAN!"
+        echo "The hostname $2 is already assigned an ip on the $1 weave VLAN!"
         exit 1
       fi
-      TARGETIP=$(etcdctl ls /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/ip-pool/available | head -1 | awk -F\/ '{print $9}')
+      TARGETIP=$(etcdctl ls /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/ip-pool/available | awk -F\/ '{print $9}' | sort -t . -k 1,1n -k 2,2n -k 3,3n -k 4,4n | head -1)
       if [ -z "$TARGETIP" ] ; then
-        echo "NO AVAILABLE IP's in the $2 clan!"
+        echo "NO AVAILABLE IP's in the $1 clan!"
         exit 1
       fi
       #snatch the ip
-      etcdctl rm /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/ip-pool/available/${TARGETIP} 2>/dev/null
-      etcdctl mk /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/ip-pool/assigned/${TARGETIP} $(hostname) 2>/dev/null
-      etcdctl mk /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/rollcall/$(hostname) ${TARGETIP} 2>/dev/null
-      /opt/bin/weave expose ${TARGETIP}/${TARGETNETMASK}
+      etcdctl rm /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/ip-pool/available/${TARGETIP} 2>&1 1>/dev/null
+      etcdctl mk /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/ip-pool/assigned/${TARGETIP} $2 2>&1 1>/dev/null
+      etcdctl mk /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/rollcall/$2 ${TARGETIP} 2>&1 1>/dev/null
+      echo $TARGETIP
     ;;
     detach)
       #get the clan num

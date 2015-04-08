@@ -18,8 +18,8 @@ COMMANDS:
   destroy network [clan-name] [network-block]
     example: weave-clanmgmt destroy network myclan 172.16.0.0
 
-  attach [clan-name]
-    Assign first available ip to current host and expose through weave
+  assign [clan-name] [hostname]
+    Assign first available ip to hostname and output ip address
 
   detach [clan-name]
     Unassign the mapped ip for the current host and call weave hide
