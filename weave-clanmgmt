@@ -211,7 +211,7 @@ clan() {
       case $1 in
         clan)
           if [ "$#" -ne 3 ]; then
-            echo "usage: weave-clanmgmt clan create clan-number clan-human-readable-name"
+            echo "usage: weave-clanmgmt create clan clan-number clan-human-readable-name"
             exit 1
           fi
           VLANEXIST=$(does_clan_exist $2)
