@@ -34,8 +34,8 @@ COMMANDS:
   assign [clan-name] [hostname]
     Assign first available ip to hostname and output ip address
 
-  detach [clan-name]
-    Unassign the mapped ip for the current host and call weave hide
+  release [clan-name] [hostname]
+    Remove assigned ip for hostname and make available again
 
   status
     List clans this host is attached to
@@ -199,24 +199,25 @@ clan() {
       etcdctl mk /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/rollcall/$2 ${TARGETIP} 2>&1 1>/dev/null
       echo $TARGETIP
     ;;
-    detach)
+    release)
+      shift 1
       #get the clan num
-      TARGETVLAN=$(etcdctl get /weave/clans/namemap/$2)
+      TARGETVLAN=$(etcdctl get /weave/clans/namemap/$1)
       #figure out which IP we have
       TARGETNETWORK=$(etcdctl ls /weave/clans/${TARGETVLAN}/network | awk -F\/ '{print $6}')
       TARGETNETMASK=$(etcdctl get /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/netmask)
-      IHAZIP=$(does_ip_exist_in_clan)
+      IHAZIP=$(does_ip_exist_in_clan $TARGETVLAN $TARGETNETWORK $2)
       if [ "$IHAZIP" == 1 ] ; then
-        echo "You are not currently connected to the $2 weave VLAN!"
+        echo "The hostname $2 is not assigned an ip on the $1 weave VLAN!"
         exit 1
       fi
       #release it
-      MYIP=$(etcdctl get /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/rollcall/$(hostname))
-      /opt/bin/weave hide ${MYIP}/${TARGETNETMASK}
-      etcdctl rm /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/ip-pool/assigned/${MYIP} 2>/dev/null
-      etcdctl rm /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/rollcall/$(hostname) 2>/dev/null
+      MYIP=$(etcdctl get /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/rollcall/$2)
+      etcdctl rm /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/ip-pool/assigned/${MYIP} 2>&1 1>/dev/null
+      etcdctl rm /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/rollcall/$2 2>&1 1>/dev/null
       #back to the pool
-      etcdctl mk /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/ip-pool/available/${MYIP} avail 2>/dev/null
+      etcdctl mk /weave/clans/${TARGETVLAN}/network/${TARGETNETWORK}/ip-pool/available/${MYIP} avail 2>&1 1>/dev/null
+      echo "Released ip address ${MYIP}"
     ;;
     create)
       shift 1
@@ -341,6 +342,12 @@ clan() {
         echo "Status:"
         etcdctl ls /weave/clans --recursive|grep rollcall| grep $(hostname)
       fi
+    ;;
+  check-array)
+    shift 1
+    network_address_to_ips $1
+    printf '%s\n' "${MYIPARRAY[@]}"
+
     ;;
     *)
       echo "Invalid argument"

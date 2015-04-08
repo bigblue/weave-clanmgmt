@@ -21,9 +21,9 @@ COMMANDS:
   assign [clan-name] [hostname]
     Assign first available ip to hostname and output ip address
 
-  detach [clan-name]
-    Unassign the mapped ip for the current host and call weave hide
+  release [clan-name] [hostname]
+    Remove assigned ip for hostname and make available again
 
-  status
+  status 
     List clans this host is attached to
 ```
